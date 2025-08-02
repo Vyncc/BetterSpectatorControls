@@ -55,7 +55,7 @@ void BetterSpectatorControls::onLoad()
 
     cvarManager->registerNotifier("SpectateSetCameraFlyBall", [this](std::vector<std::string> params) {SetCameraFlyBall();}, "Force the camera into flycam with the ball as the target", PERMISSION_ALL);
     cvarManager->registerNotifier("SpectateSetCameraFlyNoTarget", [this](std::vector<std::string> params) {SetCameraFlyNoTarget();}, "Force the camera into flycam with no target", PERMISSION_ALL);
-    cvarManager->registerNotifier("SpectateSetCameraFlyFocusPlayer", [this](std::vector<std::string> params) {SetCameraFlyFocusPlayer(params);}, "Force the camera into flycam focusing the desired player (in the alphabetical order). SpectateSetCameraFlyFocusPlayer <loc X> <loc Y> <loc Z> <rot X (in degrees)> <rot y> <rot z> <FOV> <team (blue or orange)> <player number (in alphabetical order, starts at 0)>", PERMISSION_ALL);
+    cvarManager->registerNotifier("SpectateSetCameraFlyFocusPlayer", [this](std::vector<std::string> params) {SetCameraFlyFocusPlayer(params);}, "Force the camera into flycam focusing the desired player (in the alphabetical order). SpectateSetCameraFlyFocusPlayer <loc X> <loc Y> <loc Z> <FOV> <team (blue or orange)> <player number (in alphabetical order, starts at 0)>", PERMISSION_ALL);
 
     cvarManager->registerNotifier("SpectateUnlockFOV", [this](std::vector<std::string> params) {UnlockFOV();}, "Unlock camera FOV. Will reenable scroll wheel zooming", PERMISSION_ALL);
 
@@ -81,16 +81,6 @@ void BetterSpectatorControls::onLoad()
 
     keyZoomIn = gameWrapper->GetFNameIndexByString(cvarManager->getCvar(zoomInName).getStringValue());
     keyZoomOut = gameWrapper->GetFNameIndexByString(cvarManager->getCvar(zoomOutName).getStringValue());
-
-
-    gameWrapper->HookEvent("Function TAGame.Car_TA.SetVehicleInput", [this](std::string eventName) {
-
-        CameraWrapper camera = gameWrapper->GetCamera();
-        if (!camera) return;
-
-        LOG("{} {} {} | {} {} {}", camera.GetLocation().X, camera.GetLocation().Y, camera.GetLocation().Z, camera.GetRotation().Pitch, camera.GetRotation().Yaw, camera.GetRotation().Roll);
-
-        });
 }
 
 void BetterSpectatorControls::OnKeyChanged(KeybindChange changedKey, std::string cvarName)
@@ -567,17 +557,17 @@ std::vector<PriWrapper> BetterSpectatorControls::GetSortedTeamMembers(const int&
     return teamMembers;
 }
 
-//SpectateSetCameraFlyFocusPlayer <loc X> <loc Y> <loc Z> <rot X (in degrees)> <rot y> <rot z> <FOV> <team (blue or orange)> <player number (in alphabetical order, starts at 0)>
+//SpectateSetCameraFlyFocusPlayer <loc X> <loc Y> <loc Z> <FOV> <team (blue or orange)> <player number (in alphabetical order, starts at 0)>
 void BetterSpectatorControls::SetCameraFlyFocusPlayer(std::vector<std::string> params)
 {
     if (!IsValidState()) { return; }
-	if (params.size() < 10)
+	if (params.size() < 7)
 	{
-		cvarManager->log("Not enough parameters! Usage: SpectateSetCameraFlyFocusPlayer <loc X> <loc Y> <loc Z> <rot X (in degrees)> <rot y> <rot z> <FOV> <team (blue or orange)> <player number (in alphabetical order, starts at 0)>");
+		cvarManager->log("Not enough parameters! Usage: SpectateSetCameraFlyFocusPlayer <loc X> <loc Y> <loc Z> <FOV> <team (blue or orange)> <player number (in alphabetical order, starts at 0)>");
 		return;
 	}
 
-    std::string team = params[8];
+    std::string team = params[5];
     if (team.empty() || (team != "blue" && team != "orange"))
     {
 		cvarManager->log("Invalid team specified! Use 'blue' or 'orange'.");
@@ -591,26 +581,18 @@ void BetterSpectatorControls::SetCameraFlyFocusPlayer(std::vector<std::string> p
     savedLocation.Y = (params.size() > 2) ? stof(params.at(2)) : camera.GetLocation().Y;
     savedLocation.Z = (params.size() > 3) ? stof(params.at(3)) : camera.GetLocation().Z;
 
-    //Rotation
-    savedRotation.Pitch = (params.size() > 4) ? (int)(stof(params.at(4)) * 182.044449) : camera.GetRotation().Pitch;
-    savedRotation.Yaw = (params.size() > 5) ? (int)(stof(params.at(5)) * 182.044449) : camera.GetRotation().Yaw;
-    savedRotation.Roll = (params.size() > 6) ? (int)(stof(params.at(6)) * 182.044449) : camera.GetRotation().Roll;
-
     //FOV
-    savedFOV = (params.size() > 7) ? stof(params.at(7)) : camera.GetFOV();
-
+    savedFOV = (params.size() > 4) ? stof(params.at(4)) : camera.GetFOV();
 
     //Set values    
     camera.SetLocation(savedLocation);
-    camera.SetRotation(savedRotation);
-    //camera.SetFOV(savedFOV);
 
     SetCameraFlyNoTarget();
 
 	int teamNum = (team == "blue" ? 0 : 1);
-	int playerNum = std::stoi(params[9]);
+	int playerNum = std::stoi(params[6]);
 
-	LOG("Setting camera to focus player {} on team {}", playerNum, team);
+	LOG("Setting FlyCam and focus player {} on team {}", playerNum, team);
 
     std::vector<PriWrapper> teamMembers = GetSortedTeamMembers(teamNum);
     if (teamMembers.size() > 0 && playerNum <= teamMembers.size() - 1)
@@ -626,7 +608,7 @@ void BetterSpectatorControls::SetCameraFlyFocusPlayer(std::vector<std::string> p
             else
                 actorString = "Player_" + player.GetUniqueIdWrapper().GetIdString();
 
-			//Need to do all these timeouts because of SetCameraFlyNoTarget() that Causes weird behavior with FOV.
+			//Need to do all these timeouts because of SetCameraFlyNoTarget() that causes weird behavior with FOV. 
 			gameWrapper->SetTimeout([this, actorString](GameWrapper* gw) {
                 gw->GetCamera().SetFocusActor(actorString);
                 LOG("Actor string : {}", actorString);
