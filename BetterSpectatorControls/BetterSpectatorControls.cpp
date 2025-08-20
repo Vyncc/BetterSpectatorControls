@@ -47,7 +47,7 @@ void BetterSpectatorControls::onLoad()
     cvarManager->registerNotifier("SpectateGetCameraPosition", [this](std::vector<std::string> params) {GetCameraPosition();}, "Print camera position", PERMISSION_ALL);
     cvarManager->registerNotifier("SpectateSetCameraPosition", [this](std::vector<std::string> params) {SetCameraPosition(params);}, "Set camera position. Usage: SpectateSetCameraPosition <loc X> <loc Y> <loc Z>", PERMISSION_ALL);
     cvarManager->registerNotifier("SpectateGetCameraRotation", [this](std::vector<std::string> params) {GetCameraRotation();}, "Print camera rotation", PERMISSION_ALL);
-    cvarManager->registerNotifier("SpectateSetCameraRotation", [this](std::vector<std::string> params) {SetCameraRotation(params);}, "Set camera rotation. Usage: SpectateSetCameraRotation <rot X (in degrees)> <rot y> <rot z>", PERMISSION_ALL);
+    cvarManager->registerNotifier("SpectateSetCameraRotation", [this](std::vector<std::string> params) {SetCameraRotation(params);}, "Set camera rotation. Usage: SpectateSetCameraRotation <rot X (in degrees, or none)> <rot y (in degrees, or none)> <rot z (in degrees, or none)>. Use \"none\" to let the current rotation value of the camera", PERMISSION_ALL);
     cvarManager->registerNotifier("SpectateGetCameraFOV", [this](std::vector<std::string> params) {GetCameraFOV();}, "Print camera FOV", PERMISSION_ALL);
     cvarManager->registerNotifier("SpectateSetCameraFOV", [this](std::vector<std::string> params) {SetCameraFOV(params);}, "Set camera FOV. Usage: SpectateSetCameraFOV <FOV>", PERMISSION_ALL);
     cvarManager->registerNotifier("SpectateIncreaseZoomSpeed", [this](std::vector<std::string> params) {ChangeZoomSpeed(true);}, "Increases zoom speed by 20", PERMISSION_ALL);
@@ -457,12 +457,28 @@ void BetterSpectatorControls::SetCameraRotation(std::vector<std::string> params)
 {
     if (!IsValidState()) { return; }
 
+    if (params.size() < 3)
+    {
+        LOG("Set camera rotation. Usage: SpectateSetCameraRotation <rot X (in degrees, or none)> <rot y (in degrees, or none)> <rot z (in degrees, or none)>. Use \"none\" to let the current rotation value of the camera");
+        return;
+    }
+
     CameraWrapper camera = gameWrapper->GetCamera();
 
-    //Rotation
-    savedRotation.Pitch = (params.size() > 1) ? (int)(stof(params.at(1)) * 182.044449) : camera.GetRotation().Pitch;
-    savedRotation.Yaw = (params.size() > 2) ? (int)(stof(params.at(2)) * 182.044449) : camera.GetRotation().Yaw;
-    savedRotation.Roll = (params.size() > 3) ? (int)(stof(params.at(3)) * 182.044449) : camera.GetRotation().Roll;
+    if (params[1] == "none")
+        savedRotation.Pitch = camera.GetRotation().Pitch;
+    else
+        savedRotation.Pitch = (params.size() > 1) ? (int)(stof(params.at(1)) * 182.044449) : camera.GetRotation().Pitch;
+
+    if (params[2] == "none")
+        savedRotation.Yaw = camera.GetRotation().Yaw;
+    else
+        savedRotation.Yaw = (params.size() > 2) ? (int)(stof(params.at(2)) * 182.044449) : camera.GetRotation().Yaw;
+
+    if (params[3] == "none")
+        savedRotation.Roll = camera.GetRotation().Roll;
+    else
+        savedRotation.Roll = (params.size() > 3) ? (int)(stof(params.at(3)) * 182.044449) : camera.GetRotation().Roll;
 
     //Set values
     camera.SetRotation(savedRotation);
