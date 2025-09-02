@@ -24,6 +24,7 @@ void BetterSpectatorControls::onLoad()
     zoomIncrementAmount = std::make_shared<float>(0.f);
     rotationSmoothDuration = std::make_shared<float>(0.f);
     rotationSmoothMultiplier = std::make_shared<float>(0.f);
+    disablePOVGoalReplayWhenReplayStart = std::make_shared<bool>(true);
 
     cvarManager->registerCvar("Spectate_EnableRestoration", "1", "Saves camera values before a goal replay and restores values after goal replay", true, true, 0, true, 1).bindTo(enableRestoration);
     cvarManager->registerCvar("Spectate_LockPosition", "0", "Locks the camera to the last specified position", true, true, 0, true, 1).bindTo(lockPosition);
@@ -40,6 +41,7 @@ void BetterSpectatorControls::onLoad()
 
     cvarManager->registerCvar("Spectate_SmoothRotation_Transition_Time", "0", "Averages rotation input", true, true, 0, true, 2).bindTo(rotationSmoothDuration);
     cvarManager->registerCvar("Spectate_SmoothRotation_Multiplier", "1", "Multiplier for rotation inputs. Used for slowing down rotation speed", true, true, 0, true, 1).bindTo(rotationSmoothMultiplier);
+    cvarManager->registerCvar("Spectate_disable_pov_goal_replay_when_replay_start", "1", "Disable POV goal replay when replay starts", true, true, 0, true, 1).bindTo(disablePOVGoalReplayWhenReplayStart);
 
     //NOTIFIERS
     cvarManager->registerNotifier("SpectateGetCamera", [this](std::vector<std::string> params) {GetCameraAll();}, "Print camera data to add to list of options", PERMISSION_ALL);
@@ -64,6 +66,7 @@ void BetterSpectatorControls::onLoad()
     gameWrapper->HookEvent("Function TAGame.PlayerInput_TA.PlayerInput", std::bind(&BetterSpectatorControls::PlayerInputTick, this));
     gameWrapper->HookEvent("Function TAGame.Team_TA.EventScoreUpdated", std::bind(&BetterSpectatorControls::StoreCameraAll, this));
     gameWrapper->HookEvent("Function GameEvent_TA.Countdown.BeginState", std::bind(&BetterSpectatorControls::ResetCameraAll, this));
+    gameWrapper->HookEvent("Function GameEvent_Soccar_TA.ReplayPlayback.BeginState", std::bind(&BetterSpectatorControls::OnReplayStart, this));
 
     //KEYBINDS
     zoomInName = "Spectate_Keybind_ZoomIn";
@@ -634,5 +637,14 @@ void BetterSpectatorControls::SetCameraFlyFocusPlayer(std::vector<std::string> p
                     }, 0.001f);
 				}, 0.001f);
         }
+    }
+}
+
+void BetterSpectatorControls::OnReplayStart()
+{
+    if (*disablePOVGoalReplayWhenReplayStart && cvarManager->getCvar("cl_goalreplay_pov").getBoolValue() == true)
+    {
+        LOG("Disabling POV goal replays");
+        cvarManager->executeCommand("cl_goalreplay_pov 0");
     }
 }

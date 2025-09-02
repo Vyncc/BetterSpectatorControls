@@ -41,6 +41,7 @@ private:
 	std::shared_ptr<float> zoomIncrementAmount;
 	std::shared_ptr<float> rotationSmoothDuration;
 	std::shared_ptr<float> rotationSmoothMultiplier;
+	std::shared_ptr<bool> disablePOVGoalReplayWhenReplayStart;
 
 	Vector  savedLocation = { 0,0,100 };
 	Rotator savedRotation = { 0,0,0 };
@@ -122,6 +123,8 @@ public:
 	std::vector<PriWrapper> GetSortedTeamMembers(const int& _teamNum);
 	static bool SortPRIsAlphabetically(PriWrapper& _priA, PriWrapper& _priB);
 	void SetCameraFlyFocusPlayer(std::vector<std::string> params);
+
+	void OnReplayStart();
 
 public:
 	//void RenderSettings() override; // Uncomment if you wanna render your own tab in the settings menu
